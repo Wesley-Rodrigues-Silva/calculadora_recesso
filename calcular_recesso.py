@@ -44,7 +44,6 @@ if st.button("Calcular"):
             compensacao_inicio = inicio_ferias - timedelta(days=1)
             dias_perdidos = dias_uteis_perdidos(inicio_ferias, fim_ferias, tipo_vinculo)
 
-            st.warning("⚠️ As férias coincidem com o período de compensação.")
             st.info(f"📅 Deverá iniciar a compensação em: {compensacao_inicio.strftime('%d/%m/%Y')}")
             st.error(f"📆 Dias úteis da compensação perdidos: {dias_perdidos}")
         else:
@@ -52,5 +51,4 @@ if st.button("Calcular"):
 
     except ValueError:
         st.error("❌ Datas inválidas. Use o formato dd/mm/aaaa.")
-
 
