@@ -1,19 +1,18 @@
+import streamlit as st
 from datetime import datetime, timedelta
 
 # Função para verificar se é dia útil (segunda a sexta)
 def is_weekday(date):
     return date.weekday() < 5  # 0 = segunda, 4 = sexta
 
-# Função para obter os dias de recesso (exemplo genérico)
+# Função para obter os dias de recesso
 def get_all_recess_days(tipo, ano_inicio, ano_fim):
     recess_days = set()
     for year in range(ano_inicio, ano_fim + 1):
         if tipo == 'PUC':
-            # Recesso da PUC: 15/10 a 31/10
             start = datetime(year, 10, 15)
             end = datetime(year, 10, 31)
         else:
-            # Outro tipo: 16/10 a 31/10
             start = datetime(year, 10, 16)
             end = datetime(year, 10, 31)
         current = start
@@ -24,10 +23,8 @@ def get_all_recess_days(tipo, ano_inicio, ano_fim):
 
 # Função principal para contar dias úteis perdidos
 def count_lost_workdays(ferias_inicio, ferias_fim, tipo):
-    # Define início do recesso conforme tipo
     comp_start = datetime(ferias_inicio.year, 10, 15) if tipo == 'PUC' else datetime(ferias_inicio.year, 10, 16)
 
-    # Se as férias terminam antes do recesso começar, não há dias perdidos
     if ferias_fim < comp_start:
         return 0
 
@@ -40,14 +37,28 @@ def count_lost_workdays(ferias_inicio, ferias_fim, tipo):
         current += timedelta(days=1)
     return lost_days
 
-# Exemplo de uso
-tipo_vinculo = 'PUC'
-inicio_ferias = datetime.strptime('20/09/2025', '%d/%m/%Y')
-fim_ferias = datetime.strptime('15/10/2025', '%d/%m/%Y')
+# Interface Streamlit
+st.title("🗓️ Cálculo de Dias Úteis Perdidos nas Férias")
 
-dias_perdidos = count_lost_workdays(inicio_ferias, fim_ferias, tipo_vinculo)
+tipo_vinculo = st.selectbox("Tipo de vínculo", ["PUC", "Outro"])
 
-if dias_perdidos == 0:
-    print("🎉 As férias não coincidem com o período de compensação. Nenhum dia útil será perdido.")
-else:
-    print(f"⚠️ O funcionário perderá {dias_perdidos} dias úteis durante as férias.")
+inicio_str = st.text_input("Início das férias (dd/mm/aaaa)", "20/09/2025")
+fim_str = st.text_input("Fim das férias (dd/mm/aaaa)", "15/10/2025")
+
+if st.button("Calcular"):
+    try:
+        inicio_ferias = datetime.strptime(inicio_str, "%d/%m/%Y")
+        fim_ferias = datetime.strptime(fim_str, "%d/%m/%Y")
+
+        dias_perdidos = count_lost_workdays(inicio_ferias, fim_ferias, tipo_vinculo)
+
+        if dias_perdidos == 0:
+            st.success("🎉 As férias não coincidem com o período de compensação. Nenhum dia útil será perdido.")
+        else:
+            st.warning(f"⚠️ O funcionário perderá {dias_perdidos} dias úteis durante as férias.")
+            compensacao_inicio = inicio_ferias - timedelta(days=1)
+            st.info(f"📅 Deverá iniciar a compensação em: {compensacao_inicio.strftime('%d/%m/%Y')}")
+
+    except ValueError:
+        st.error("❌ Datas inválidas. Use o formato dd/mm/aaaa.")
+
