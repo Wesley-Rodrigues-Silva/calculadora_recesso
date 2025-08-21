@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
+import re
 
 # 📅 Verifica se é dia útil (segunda a sexta)
 def is_weekday(date):
@@ -56,26 +57,37 @@ st.set_page_config(page_title="Calculadora de Compensação", page_icon="🗓️
 st.title("📅 Calculadora de Início de Compensação")
 
 tipo = st.selectbox("Tipo de vínculo", ["PUC", "FUNDASP"])
-inicio = st.date_input("Início das férias")
-fim = st.date_input("Fim das férias")
+inicio_str = st.text_input("Início das férias (dd/mm/aaaa)")
+fim_str = st.text_input("Fim das férias (dd/mm/aaaa)")
+
+# 🧠 Função para validar e corrigir datas digitadas
+def formatar_data(data_str):
+    data_str = re.sub(r"[^\d]", "", data_str)  # Remove tudo que não for número
+    if len(data_str) == 8:
+        return f"{data_str[:2]}/{data_str[2:4]}/{data_str[4:]}"
+    return data_str
 
 if st.button("Calcular"):
-    ferias_inicio = datetime.combine(inicio, datetime.min.time())
-    ferias_fim = datetime.combine(fim, datetime.min.time())
+    inicio_str = formatar_data(inicio_str)
+    fim_str = formatar_data(fim_str)
 
-    if ferias_fim < ferias_inicio:
-        st.error("❌ A data final não pode ser anterior à data inicial.")
-    else:
-        dias_perdidos = count_lost_workdays(ferias_inicio, ferias_fim, tipo)
+    try:
+        ferias_inicio = datetime.strptime(inicio_str, "%d/%m/%Y")
+        ferias_fim = datetime.strptime(fim_str, "%d/%m/%Y")
 
-        if dias_perdidos == 0:
-            st.info("🎉 As férias não coincidem com o período de compensação. Nenhum dia útil será perdido.")
+        if ferias_fim < ferias_inicio:
+            st.error("❌ A data final não pode ser anterior à data inicial.")
         else:
-            data_inicio = find_start_date(dias_perdidos, tipo)
-            st.success(f"""
-            ✅ O funcionário perderá **{dias_perdidos} dias úteis** durante as férias.
+            dias_perdidos = count_lost_workdays(ferias_inicio, ferias_fim, tipo)
 
-            🕒 Deverá iniciar a compensação em: **{data_inicio.strftime('%d/%m/%Y')}**
-            """)
+            if dias_perdidos == 0:
+                st.info("🎉 As férias não coincidem com o período de compensação. Nenhum dia útil será perdido.")
+            else:
+                data_inicio = find_start_date(dias_perdidos, tipo)
+                st.success(f"""
+                ✅ O funcionário perderá **{dias_perdidos} dias úteis** durante as férias.
 
-
+                🕒 Deverá iniciar a compensação em: **{data_inicio.strftime('%d/%m/%Y')}**
+                """)
+    except Exception as e:
+        st.error("⚠️ Verifique se as datas estão completas e no formato correto (dd/mm/aaaa).")
