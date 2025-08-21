@@ -22,11 +22,10 @@ def dias_uteis_perdidos(ferias_inicio, ferias_fim, tipo):
     return lost_days
 
 def calcular_inicio_compensacao(inicio_ferias, dias_perdidos):
-    dias_antecipar = dias_perdidos * 3
     dias_contados = 0
     data = inicio_ferias - timedelta(days=1)
 
-    while dias_contados < dias_antecipar:
+    while dias_contados < dias_perdidos:
         if is_weekday(data):
             dias_contados += 1
         data -= timedelta(days=1)
