@@ -25,7 +25,7 @@ def get_all_recess_days(tipo: str, start_year: int, end_year: int):
 
 # 📉 Conta dias úteis perdidos nas férias
 def count_lost_workdays(ferias_inicio: datetime, ferias_fim: datetime, tipo: str) -> int:
-    comp_start = datetime(ferias_inicio.year, 10, 16) if tipo == 'PUC' else datetime(ferias_inicio.year, 10, 15)
+    comp_start = datetime(ferias_inicio.year, 10, 15) if tipo == 'PUC' else datetime(ferias_inicio.year, 10, 16)
 
     if ferias_fim < comp_start:
         return 0
