@@ -8,10 +8,13 @@ def is_weekday(date: datetime) -> bool:
 # 🎯 Retorna recessos por tipo e ano
 def get_recess_days(tipo: str, year: int):
     if tipo == 'PUC':
+        # PUC: 20/11 e 21/11
         return [datetime(year, 11, 20), datetime(year, 11, 21)]
     elif tipo == 'FUNDASP':
-        return [datetime(year, 11, 20)]
+        # FUNDASP: 10/10 e 20/11
+        return [datetime(year, 10, 10), datetime(year, 11, 20)]
     return []
+
 
 # 🔁 Recessos entre anos (caso férias cruzem ano)
 def get_all_recess_days(tipo: str, start_year: int, end_year: int):
@@ -85,3 +88,4 @@ if st.button("Calcular"):
                 )
     except ValueError:
         st.error("⚠️ Digite as datas corretamente no formato dd/mm/aaaa.")
+
