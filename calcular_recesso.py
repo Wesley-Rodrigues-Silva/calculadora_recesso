@@ -24,6 +24,7 @@ def get_all_recess_days(tipo: str, start_year: int, end_year: int):
 
 # 📉 Conta dias úteis perdidos nas férias
 def count_lost_workdays(ferias_inicio: datetime, ferias_fim: datetime, tipo: str) -> int:
+    # marco inicial do período de compensação
     comp_start = datetime(ferias_inicio.year, 10, 15) if tipo == 'PUC' else datetime(ferias_inicio.year, 10, 16)
 
     if ferias_fim < comp_start:
@@ -84,11 +85,11 @@ if st.button("Calcular"):
             st.error("❌ A data final não pode ser anterior à data inicial.")
         else:
             dias_perdidos = count_lost_workdays(ferias_inicio, ferias_fim, tipo)
+            data_inicio = get_start_date(tipo, jornada, ferias_inicio.year)
 
             if dias_perdidos == 0:
                 st.info("🎉 As férias não coincidem com o período de compensação. Nenhum dia útil será perdido.")
             else:
-                data_inicio = get_start_date(tipo, jornada, ferias_inicio.year)
                 st.success(
                     f"✅ O funcionário perderá **{dias_perdidos} dias úteis** durante as férias.\n\n"
                     f"🕒 Jornada diária: **{jornada}**\n"
