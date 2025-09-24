@@ -59,22 +59,21 @@ def count_lost_workdays(ferias_inicio: datetime, ferias_fim: datetime, tipo: str
         current += timedelta(days=1)
     return lost_days
 
-# 🔍 Calcula a data real de início da compensação voltando dias úteis perdidos
-def find_start_date(ferias_fim: datetime, lost_days: int, tipo: str, jornada: str) -> datetime:
-    comp_start = get_fixed_start_date(tipo, jornada, ferias_fim.year)
+# 🔍 Calcula a data real de início da compensação voltando os dias úteis perdidos
+def find_start_date(ferias_fim: datetime, lost_days: int, tipo: str) -> datetime:
+    """
+    Volta 'lost_days' dias úteis a partir do fim das férias,
+    considerando finais de semana e recessos.
+    """
     recess_days = set(get_all_recess_days(tipo, ferias_fim.year, ferias_fim.year))
-
-    # Começa no fim das férias e volta os dias úteis perdidos
     current = ferias_fim
     dias_para_voltar = lost_days
+
     while dias_para_voltar > 0:
         current -= timedelta(days=1)
         if is_weekday(current) and current not in recess_days:
             dias_para_voltar -= 1
 
-    # Garante que não seja antes da data fixa de início da compensação
-    if current < comp_start:
-        current = comp_start
     return current
 
 # 🧱 Interface Streamlit
@@ -100,7 +99,7 @@ if st.button("Calcular"):
             if dias_perdidos == 0:
                 st.info("🎉 As férias não coincidem com o período de compensação. Nenhum dia útil será perdido.")
             else:
-                data_inicio = find_start_date(ferias_fim, dias_perdidos, tipo, jornada)
+                data_inicio = find_start_date(ferias_fim, dias_perdidos, tipo)
                 st.success(
                     f"✅ O funcionário perderá **{dias_perdidos} dias úteis** durante as férias.\n\n"
                     f"🕒 Deverá iniciar a compensação em: **{data_inicio.strftime('%d/%m/%Y')}**"
