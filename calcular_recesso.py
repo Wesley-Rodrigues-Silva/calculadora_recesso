@@ -15,7 +15,6 @@ def get_recess_days(tipo: str, year: int):
         return [datetime(year, 10, 10), datetime(year, 11, 20)]
     return []
 
-
 # 🔁 Recessos entre anos (caso férias cruzem ano)
 def get_all_recess_days(tipo: str, start_year: int, end_year: int):
     days = []
@@ -41,28 +40,36 @@ def count_lost_workdays(ferias_inicio: datetime, ferias_fim: datetime, tipo: str
         current += timedelta(days=1)
     return lost_days
 
-# 🔍 Encontra data de início da compensação
-def find_start_date(lost_days: int, tipo: str, year: int) -> datetime:
-    comp_start = datetime(year, 10, 16) if tipo == 'PUC' else datetime(year, 10, 15)
+# 📌 Datas fixas de início da compensação por vínculo e jornada
+datas_inicio = {
+    "PUC": {
+        "08h": "15/10",
+        "06h": "31/10",
+        "05h": "10/11",
+        "04h": "18/11",
+    },
+    "FUNDASP": {
+        "08h": "16/10",
+        "06h": "03/11",
+        "05h": "11/11",
+        "04h": "19/11",
+    }
+}
 
-    if lost_days <= 1:
-        return comp_start
-
-    recess_days = set(get_recess_days(tipo, comp_start.year))
-    current = comp_start
-    steps_to_go_back = lost_days - 1
-
-    while steps_to_go_back > 0:
-        current -= timedelta(days=1)
-        if is_weekday(current) and current not in recess_days:
-            steps_to_go_back -= 1
-    return current
+# 🔍 Busca a data de início da compensação pelo vínculo + jornada
+def get_start_date(tipo: str, jornada: str, year: int) -> datetime:
+    data_str = datas_inicio[tipo][jornada] + f"/{year}"
+    return datetime.strptime(data_str, "%d/%m/%Y")
 
 # 🧱 Interface Web com Streamlit
 st.set_page_config(page_title="Calculadora de Compensação", page_icon="🗓️")
 st.title("📅 Calculadora de Início de Compensação")
 
+# Seleção do tipo de vínculo
 tipo = st.selectbox("Tipo de vínculo", ["PUC", "FUNDASP"])
+
+# Seleção da jornada diária
+jornada = st.selectbox("Jornada diária", ["08h", "06h", "05h", "04h"])
 
 # 🔧 Datas no padrão brasileiro (texto)
 inicio_str = st.text_input("Início das férias (dd/mm/aaaa)")
@@ -81,11 +88,11 @@ if st.button("Calcular"):
             if dias_perdidos == 0:
                 st.info("🎉 As férias não coincidem com o período de compensação. Nenhum dia útil será perdido.")
             else:
-                data_inicio = find_start_date(dias_perdidos, tipo, ferias_inicio.year)
+                data_inicio = get_start_date(tipo, jornada, ferias_inicio.year)
                 st.success(
                     f"✅ O funcionário perderá **{dias_perdidos} dias úteis** durante as férias.\n\n"
-                    f"🕒 Deverá iniciar a compensação em: **{data_inicio.strftime('%d/%m/%Y')}**"
+                    f"🕒 Jornada diária: **{jornada}**\n"
+                    f"📅 Deverá iniciar a compensação em: **{data_inicio.strftime('%d/%m/%Y')}**"
                 )
     except ValueError:
         st.error("⚠️ Digite as datas corretamente no formato dd/mm/aaaa.")
-
