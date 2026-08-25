@@ -28,7 +28,7 @@ REGRAS_JORNADA = {
     },
 }
 
-# Último dia permitido para a compensação
+# Prazo final da compensação
 FIM_COMPENSACAO = date(2026, 12, 23)
 
 # Feriados dentro do período relevante
@@ -44,9 +44,10 @@ FERIADOS = {
 
 def is_business_day(data):
     """
-    Verifica se a data é um dia útil.
-    Segunda a sexta e não pode ser feriado.
+    Retorna True se a data for um dia útil.
+    Segunda a sexta-feira e não pode ser feriado.
     """
+
     return (
         data.weekday() < 5
         and data not in FERIADOS
@@ -57,6 +58,7 @@ def get_business_days(inicio, fim):
     """
     Retorna todos os dias úteis entre duas datas.
     """
+
     dias = []
     atual = inicio
 
@@ -74,32 +76,10 @@ def count_business_days(inicio, fim):
     """
     Conta a quantidade de dias úteis entre duas datas.
     """
+
     return len(
         get_business_days(inicio, fim)
     )
-
-
-def calculate_end_date(inicio, quantidade_dias):
-    """
-    Calcula a data em que termina a compensação,
-    contando somente dias úteis.
-    """
-
-    dias_contados = 0
-    atual = inicio
-
-    while atual <= FIM_COMPENSACAO:
-
-        if is_business_day(atual):
-
-            dias_contados += 1
-
-            if dias_contados == quantidade_dias:
-                return atual
-
-        atual += timedelta(days=1)
-
-    return None
 
 
 # ============================================================
@@ -197,8 +177,8 @@ if st.button("Calcular"):
         # DIAS ÚTEIS PERDIDOS
         # ====================================================
 
-        # A contagem só começa na data de início
-        # da compensação daquela jornada.
+        # A contagem dos dias perdidos começa na data
+        # de início da compensação daquela jornada.
 
         inicio_contagem = max(
             inicio_ferias,
@@ -228,16 +208,6 @@ if st.button("Calcular"):
         dias_disponiveis = count_business_days(
             inicio_compensacao,
             FIM_COMPENSACAO
-        )
-
-
-        # ====================================================
-        # DATA FINAL DA COMPENSAÇÃO
-        # ====================================================
-
-        data_final_compensacao = calculate_end_date(
-            inicio_compensacao,
-            3
         )
 
 
@@ -282,22 +252,13 @@ if st.button("Calcular"):
 
 
         # ----------------------------------------------------
-        # FIM DA COMPENSAÇÃO
+        # PRAZO FINAL DA COMPENSAÇÃO
         # ----------------------------------------------------
 
-        if data_final_compensacao:
-
-            st.success(
-                f"🏁 **Fim da compensação:** "
-                f"{data_final_compensacao.strftime('%d/%m/%Y')}"
-            )
-
-        else:
-
-            st.error(
-                "❌ A compensação não cabe no período "
-                "até 23/12/2026."
-            )
+        st.success(
+            f"📅 **Prazo final da compensação:** "
+            f"{FIM_COMPENSACAO.strftime('%d/%m/%Y')}"
+        )
 
 
         # ====================================================
@@ -306,23 +267,20 @@ if st.button("Calcular"):
 
         if dias_perdidos == 0:
 
-            # Se as férias não atingirem o período
-            # de compensação, mostra apenas esta mensagem.
-
             st.success(
                 "✅ Período de férias não afeta a compensação."
             )
 
         else:
 
-            # ------------------------------------------------
-            # DIAS PERDIDOS
-            # ------------------------------------------------
-
             st.divider()
 
             st.subheader("📊 Impacto das férias")
 
+
+            # ------------------------------------------------
+            # DIAS PERDIDOS E DISPONÍVEIS
+            # ------------------------------------------------
 
             col1, col2 = st.columns(2)
 
@@ -364,13 +322,14 @@ if st.button("Calcular"):
 
                 st.error(
                     f"❌ Existem {dias_perdidos} dias úteis "
-                    f"a compensar, mas o período possui apenas "
-                    f"{dias_disponiveis} dias úteis disponíveis."
+                    f"afetados pelas férias, mas existem apenas "
+                    f"{dias_disponiveis} dias úteis disponíveis "
+                    f"até 23/12/2026."
                 )
 
 
         # ====================================================
-        # FERIADOS
+        # FERIADOS CONSIDERADOS
         # ====================================================
 
         with st.expander(
