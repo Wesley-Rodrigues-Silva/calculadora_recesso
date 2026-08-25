@@ -8,7 +8,7 @@ from datetime import date, timedelta
 
 ANO = 2026
 
-# Regras conforme a tabela
+# Regras conforme a tabela fornecida
 REGRAS_JORNADA = {
     "8 horas": {
         "horas": 24,
@@ -33,7 +33,7 @@ REGRAS_JORNADA = {
 FIM_COMPENSACAO = date(2026, 12, 23)
 
 
-# Feriados dentro do período de compensação
+# Feriados dentro do período relevante
 FERIADOS = {
     date(2026, 11, 2),   # Finados
     date(2026, 11, 20),  # Consciência Negra
@@ -46,8 +46,9 @@ FERIADOS = {
 
 def is_business_day(data):
     """
-    Verifica se a data é dia útil.
-    Segunda a sexta e não pode ser feriado.
+    Retorna True se a data for um dia útil.
+
+    Segunda a sexta-feira e não pode ser feriado.
     """
 
     return (
@@ -58,8 +59,8 @@ def is_business_day(data):
 
 def get_business_days(inicio, fim):
     """
-    Retorna uma lista com todos os dias úteis
-    entre duas datas.
+    Retorna uma lista contendo todos os dias úteis
+    entre duas datas, incluindo início e fim.
     """
 
     dias = []
@@ -88,7 +89,7 @@ def count_business_days(inicio, fim):
 def calculate_end_date(inicio, quantidade_dias):
     """
     Calcula a data em que termina a compensação,
-    considerando somente dias úteis.
+    contando somente dias úteis.
     """
 
     dias_contados = 0
@@ -166,7 +167,7 @@ fim_ferias = st.date_input(
 
 
 # ============================================================
-# BOTÃO
+# BOTÃO CALCULAR
 # ============================================================
 
 if st.button("Calcular"):
@@ -199,12 +200,13 @@ if st.button("Calcular"):
 
     else:
 
-        # ----------------------------------------------------
-        # DIAS ÚTEIS PERDIDOS DURANTE AS FÉRIAS
-        # ----------------------------------------------------
+        # ====================================================
+        # DIAS ÚTEIS PERDIDOS
+        # ====================================================
 
-        # A contagem só considera dias a partir da data
-        # de início da compensação daquela jornada.
+        # A contagem dos dias perdidos só começa na data
+        # definida para o início da compensação da jornada.
+
         inicio_contagem = max(
             inicio_ferias,
             inicio_compensacao
@@ -227,9 +229,9 @@ if st.button("Calcular"):
         )
 
 
-        # ----------------------------------------------------
+        # ====================================================
         # DIAS ÚTEIS DISPONÍVEIS PARA COMPENSAÇÃO
-        # ----------------------------------------------------
+        # ====================================================
 
         dias_disponiveis = count_business_days(
             inicio_compensacao,
@@ -237,9 +239,9 @@ if st.button("Calcular"):
         )
 
 
-        # ----------------------------------------------------
+        # ====================================================
         # DATA FINAL DA COMPENSAÇÃO
-        # ----------------------------------------------------
+        # ====================================================
 
         data_final_compensacao = calculate_end_date(
             inicio_compensacao,
@@ -248,13 +250,17 @@ if st.button("Calcular"):
 
 
         # ====================================================
-        # RESULTADO PRINCIPAL
+        # RESULTADO
         # ====================================================
 
         st.divider()
 
         st.subheader("📋 Resultado")
 
+
+        # ----------------------------------------------------
+        # JORNADA E HORAS
+        # ----------------------------------------------------
 
         col1, col2 = st.columns(2)
 
@@ -274,7 +280,7 @@ if st.button("Calcular"):
 
 
         # ----------------------------------------------------
-        # DATA DE INÍCIO
+        # INÍCIO DA COMPENSAÇÃO
         # ----------------------------------------------------
 
         st.success(
@@ -284,7 +290,7 @@ if st.button("Calcular"):
 
 
         # ----------------------------------------------------
-        # DATA FINAL
+        # FIM DA COMPENSAÇÃO
         # ----------------------------------------------------
 
         if data_final_compensacao:
@@ -311,28 +317,42 @@ if st.button("Calcular"):
         st.subheader("📊 Informações sobre as férias")
 
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            st.metric(
-                "Dias úteis perdidos",
-                dias_perdidos
-            )
-
-        with col2:
-
-            st.metric(
-                "Dias úteis disponíveis",
-                dias_disponiveis
-            )
-
-
         # ====================================================
-        # DETALHAMENTO
+        # SE NÃO AFETAR A COMPENSAÇÃO
         # ====================================================
 
-        if dias_perdidos > 0:
+        if dias_perdidos == 0:
+
+            st.success(
+                "✅ Período de férias não afeta a compensação."
+            )
+
+        # ====================================================
+        # SE AFETAR A COMPENSAÇÃO
+        # ====================================================
+
+        else:
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+
+                st.metric(
+                    "Dias úteis perdidos",
+                    dias_perdidos
+                )
+
+            with col2:
+
+                st.metric(
+                    "Dias úteis disponíveis",
+                    dias_disponiveis
+                )
+
+
+            # ------------------------------------------------
+            # VER DIAS PERDIDOS
+            # ------------------------------------------------
 
             with st.expander(
                 "📋 Ver dias úteis perdidos"
@@ -344,16 +364,22 @@ if st.button("Calcular"):
                         dia.strftime("%d/%m/%Y")
                     )
 
-        else:
 
-            st.info(
-                "ℹ️ Não foram encontrados dias úteis "
-                "perdidos no período informado."
-            )
+            # ------------------------------------------------
+            # VERIFICAÇÃO
+            # ------------------------------------------------
+
+            if dias_perdidos > dias_disponiveis:
+
+                st.error(
+                    f"❌ Existem {dias_perdidos} dias úteis "
+                    f"a compensar, mas o período possui apenas "
+                    f"{dias_disponiveis} dias úteis disponíveis."
+                )
 
 
         # ====================================================
-        # FERIADOS
+        # FERIADOS CONSIDERADOS
         # ====================================================
 
         with st.expander(
