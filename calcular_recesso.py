@@ -1,110 +1,328 @@
 import streamlit as st
 from datetime import datetime, timedelta
 
-# ---------------------------
-# Helpers
-# ---------------------------
-def is_business_day(date: datetime, recess_days: set) -> bool:
-    """Retorna True se for dia útil e NÃO estiver em recess_days."""
-    return date.weekday() < 5 and date not in recess_days
 
-def get_recess_days(tipo: str, year: int):
-    """Recessos por tipo/ano — atualize se precisar adicionar feriados extras."""
-    if tipo == 'PUC':
-        return [datetime(year, 11, 20), datetime(year, 11, 21)]
-    elif tipo == 'FUNDASP':
-        return [datetime(year, 10, 10), datetime(year, 11, 20)]
-    return []
+# ============================================================
+# CONFIGURAÇÕES
+# ============================================================
 
-def get_all_recess_days(tipo: str, start_year: int, end_year: int):
-    days = []
-    for y in range(start_year, end_year + 1):
-        days.extend(get_recess_days(tipo, y))
-    return set(days)
+ANO = 2026
 
-def get_fixed_start_date(tipo: str, jornada: str, year: int) -> datetime:
-    s = datas_inicio[tipo][jornada] + f"/{year}"
-    return datetime.strptime(s, "%d/%m/%Y")
+INICIO_COMPENSACAO = datetime(2026, 10, 15)
+FIM_COMPENSACAO = datetime(2026, 12, 23)
 
-def first_business_on_or_after(date: datetime, recess_days: set) -> datetime:
-    cur = date
-    while not is_business_day(cur, recess_days):
-        cur += timedelta(days=1)
-    return cur
 
-def list_lost_dates(contagem_inicio: datetime, ferias_fim: datetime, recess_days: set):
-    """Retorna a lista de dias úteis perdidos (datetime objects)."""
-    lost = []
-    cur = contagem_inicio
-    while cur <= ferias_fim:
-        if is_business_day(cur, recess_days):
-            lost.append(cur)
-        cur += timedelta(days=1)
-    return lost
-
-def backdate_business_days_from(start: datetime, days: int, recess_days: set):
-    """Volta 'days' dias úteis a partir de 'start' (start deve ser um dia útil)."""
-    current = start
-    remaining = days
-    while remaining > 0:
-        current -= timedelta(days=1)
-        if is_business_day(current, recess_days):
-            remaining -= 1
-    return current
-
-# ---------------------------
-# Datas fixas por vínculo/jornada
-# ---------------------------
-datas_inicio = {
-    "PUC": {"08h": "15/10", "06h": "31/10", "05h": "10/11", "04h": "18/11"},
-    "FUNDASP": {"08h": "16/10", "06h": "03/11", "05h": "11/11", "04h": "19/11"},
+# Feriados que realmente estão dentro do período da compensação
+FERIADOS = {
+    datetime(2026, 11, 2),   # Finados
+    datetime(2026, 11, 20),  # Consciência Negra
 }
 
-# ---------------------------
-# Streamlit UI
-# ---------------------------
-st.set_page_config(page_title="Calculadora de Compensação", page_icon="🗓️")
-st.title("📅 Calculadora de Início de Compensação (por jornada)")
 
-tipo = st.selectbox("Tipo de vínculo", ["PUC", "FUNDASP"])
-jornada = st.selectbox("Jornada diária", ["08h", "06h", "05h", "04h"])
+# ============================================================
+# FUNÇÕES AUXILIARES
+# ============================================================
 
-inicio_str = st.text_input("Início das férias (dd/mm/aaaa)")
-fim_str = st.text_input("Fim das férias (dd/mm/aaaa)")
+def is_business_day(date):
+    """
+    Retorna True se for um dia útil:
+    - Segunda a sexta
+    - Não for feriado
+    """
+
+    return (
+        date.weekday() < 5
+        and date not in FERIADOS
+    )
+
+
+def first_business_on_or_after(date):
+    """
+    Encontra o primeiro dia útil a partir da data informada.
+    """
+
+    current = date
+
+    while not is_business_day(current):
+        current += timedelta(days=1)
+
+    return current
+
+
+def list_lost_dates(start, end):
+    """
+    Retorna todos os dias úteis perdidos
+    durante o período das férias.
+    """
+
+    lost = []
+    current = start
+
+    while current <= end:
+
+        if is_business_day(current):
+            lost.append(current)
+
+        current += timedelta(days=1)
+
+    return lost
+
+
+def backdate_business_days_from(start, days):
+    """
+    Volta a quantidade de dias úteis informada
+    a partir da data de início da compensação.
+    """
+
+    current = start
+    remaining = days
+
+    while remaining > 0:
+
+        current -= timedelta(days=1)
+
+        if is_business_day(current):
+            remaining -= 1
+
+    return current
+
+
+def count_business_days(start, end):
+    """
+    Conta quantos dias úteis existem entre duas datas.
+    """
+
+    total = 0
+    current = start
+
+    while current <= end:
+
+        if is_business_day(current):
+            total += 1
+
+        current += timedelta(days=1)
+
+    return total
+
+
+# ============================================================
+# CONFIGURAÇÃO DO STREAMLIT
+# ============================================================
+
+st.set_page_config(
+    page_title="Calculadora de Compensação",
+    page_icon="🗓️"
+)
+
+
+st.title("📅 Calculadora de Início de Compensação")
+
+
+st.info(
+    "🕒 **Período da compensação:** "
+    "15/10/2026 até 23/12/2026"
+)
+
+
+# ============================================================
+# CAMPOS
+# ============================================================
+
+inicio_str = st.text_input(
+    "Início das férias (dd/mm/aaaa)"
+)
+
+fim_str = st.text_input(
+    "Fim das férias (dd/mm/aaaa)"
+)
+
+
+# ============================================================
+# CÁLCULO
+# ============================================================
 
 if st.button("Calcular"):
+
     try:
-        ferias_inicio = datetime.strptime(inicio_str, "%d/%m/%Y")
-        ferias_fim = datetime.strptime(fim_str, "%d/%m/%Y")
+
+        ferias_inicio = datetime.strptime(
+            inicio_str,
+            "%d/%m/%Y"
+        )
+
+        ferias_fim = datetime.strptime(
+            fim_str,
+            "%d/%m/%Y"
+        )
+
+
+        # ----------------------------------------------------
+        # VALIDAÇÕES
+        # ----------------------------------------------------
 
         if ferias_fim < ferias_inicio:
-            st.error("❌ A data final não pode ser anterior à data inicial.")
+
+            st.error(
+                "❌ A data final das férias não pode "
+                "ser anterior à data inicial."
+            )
+
+        elif (
+            ferias_inicio.year != ANO
+            or ferias_fim.year != ANO
+        ):
+
+            st.error(
+                "⚠️ As datas das férias devem estar "
+                "dentro de 2026."
+            )
+
         else:
-            # Data fixa de início da compensação
-            comp_start = get_fixed_start_date(tipo, jornada, ferias_inicio.year)
 
-            # Contagem começa em max(ferias_inicio, comp_start)
-            contagem_inicio_raw = max(ferias_inicio, comp_start)
+            # ------------------------------------------------
+            # INÍCIO REAL DA CONTAGEM
+            # ------------------------------------------------
 
-            # Recessos para os anos envolvidos (incluindo margem para recuos)
-            start_year = min(ferias_inicio.year, comp_start.year) - 1
-            end_year = max(ferias_fim.year, comp_start.year) + 1
-            recess_days = get_all_recess_days(tipo, start_year, end_year)
+            contagem_inicio_raw = max(
+                ferias_inicio,
+                INICIO_COMPENSACAO
+            )
 
-            # Primeiro dia útil dentro das férias
-            contagem_inicio = first_business_on_or_after(contagem_inicio_raw, recess_days)
 
-            # Dias perdidos
-            lost_dates = list_lost_dates(contagem_inicio, ferias_fim, recess_days)
-            dias_perdidos = len(lost_dates)
+            # Primeiro dia útil a partir da data encontrada
+            contagem_inicio = first_business_on_or_after(
+                contagem_inicio_raw
+            )
+
+
+            # ------------------------------------------------
+            # DIAS ÚTEIS PERDIDOS
+            # ------------------------------------------------
+
+            if contagem_inicio > ferias_fim:
+
+                dias_perdidos = 0
+                lost_dates = []
+
+            else:
+
+                lost_dates = list_lost_dates(
+                    contagem_inicio,
+                    ferias_fim
+                )
+
+                dias_perdidos = len(lost_dates)
+
+
+            # ------------------------------------------------
+            # DIAS DISPONÍVEIS PARA COMPENSAÇÃO
+            # ------------------------------------------------
+
+            dias_disponiveis = count_business_days(
+                INICIO_COMPENSACAO,
+                FIM_COMPENSACAO
+            )
+
+
+            # ------------------------------------------------
+            # RESULTADO
+            # ------------------------------------------------
 
             if dias_perdidos == 0:
-                st.info("🎉 Nenhum dia útil será perdido durante as férias.")
-            else:
-                inicio_compensacao = backdate_business_days_from(comp_start, dias_perdidos, recess_days)
-                st.success(
-                    f"✅ O funcionário perderá **{dias_perdidos} dias úteis** durante as férias.\n\n"
-                    f"🕒 A compensação deve iniciar em: **{inicio_compensacao.strftime('%d/%m/%Y')}**"
+
+                st.info(
+                    "🎉 Nenhum dia útil será perdido "
+                    "durante as férias."
                 )
+
+            else:
+
+                # Verifica se cabe no período disponível
+                if dias_perdidos > dias_disponiveis:
+
+                    st.error(
+                        f"❌ São necessários **{dias_perdidos} "
+                        f"dias úteis** para compensação, mas existem "
+                        f"apenas **{dias_disponiveis} dias úteis** "
+                        f"disponíveis entre 15/10/2026 e 23/12/2026."
+                    )
+
+                else:
+
+                    inicio_compensacao = (
+                        backdate_business_days_from(
+                            INICIO_COMPENSACAO,
+                            dias_perdidos
+                        )
+                    )
+
+                    st.success(
+                        f"✅ O funcionário perderá "
+                        f"**{dias_perdidos} dias úteis** "
+                        f"durante as férias."
+                    )
+
+                    st.success(
+                        f"🕒 A compensação deve iniciar em: "
+                        f"**{inicio_compensacao.strftime('%d/%m/%Y')}**"
+                    )
+
+
+            # ------------------------------------------------
+            # INFORMAÇÕES DO CÁLCULO
+            # ------------------------------------------------
+
+            st.divider()
+
+            st.subheader("📊 Informações")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+
+                st.metric(
+                    "Dias úteis perdidos",
+                    dias_perdidos
+                )
+
+            with col2:
+
+                st.metric(
+                    "Dias úteis disponíveis",
+                    dias_disponiveis
+                )
+
+
+            # ------------------------------------------------
+            # FERIADOS CONSIDERADOS
+            # ------------------------------------------------
+
+            with st.expander("📅 Feriados considerados"):
+
+                st.write("02/11/2026 — Finados")
+                st.write("20/11/2026 — Consciência Negra")
+
+
+            # ------------------------------------------------
+            # DIAS PERDIDOS
+            # ------------------------------------------------
+
+            if lost_dates:
+
+                with st.expander(
+                    "📋 Ver dias úteis perdidos"
+                ):
+
+                    for date in lost_dates:
+
+                        st.write(
+                            date.strftime("%d/%m/%Y")
+                        )
+
+
     except ValueError:
-        st.error("⚠️ Digite as datas corretamente no formato dd/mm/aaaa.")
+
+        st.error(
+            "⚠️ Digite as datas corretamente "
+            "no formato dd/mm/aaaa."
+        )
