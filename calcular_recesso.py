@@ -8,7 +8,7 @@ from datetime import date, timedelta
 
 ANO = 2026
 
-# Regras conforme a tabela fornecida
+# Regras conforme a tabela
 REGRAS_JORNADA = {
     "8 horas": {
         "horas": 24,
@@ -28,10 +28,8 @@ REGRAS_JORNADA = {
     },
 }
 
-
 # Último dia permitido para a compensação
 FIM_COMPENSACAO = date(2026, 12, 23)
-
 
 # Feriados dentro do período relevante
 FERIADOS = {
@@ -46,11 +44,9 @@ FERIADOS = {
 
 def is_business_day(data):
     """
-    Retorna True se a data for um dia útil.
-
-    Segunda a sexta-feira e não pode ser feriado.
+    Verifica se a data é um dia útil.
+    Segunda a sexta e não pode ser feriado.
     """
-
     return (
         data.weekday() < 5
         and data not in FERIADOS
@@ -59,10 +55,8 @@ def is_business_day(data):
 
 def get_business_days(inicio, fim):
     """
-    Retorna uma lista contendo todos os dias úteis
-    entre duas datas, incluindo início e fim.
+    Retorna todos os dias úteis entre duas datas.
     """
-
     dias = []
     atual = inicio
 
@@ -80,7 +74,6 @@ def count_business_days(inicio, fim):
     """
     Conta a quantidade de dias úteis entre duas datas.
     """
-
     return len(
         get_business_days(inicio, fim)
     )
@@ -204,8 +197,8 @@ if st.button("Calcular"):
         # DIAS ÚTEIS PERDIDOS
         # ====================================================
 
-        # A contagem dos dias perdidos só começa na data
-        # definida para o início da compensação da jornada.
+        # A contagem só começa na data de início
+        # da compensação daquela jornada.
 
         inicio_contagem = max(
             inicio_ferias,
@@ -223,14 +216,13 @@ if st.button("Calcular"):
 
             dias_perdidos_lista = []
 
-
         dias_perdidos = len(
             dias_perdidos_lista
         )
 
 
         # ====================================================
-        # DIAS ÚTEIS DISPONÍVEIS PARA COMPENSAÇÃO
+        # DIAS ÚTEIS DISPONÍVEIS
         # ====================================================
 
         dias_disponiveis = count_business_days(
@@ -309,29 +301,28 @@ if st.button("Calcular"):
 
 
         # ====================================================
-        # INFORMAÇÕES SOBRE AS FÉRIAS
-        # ====================================================
-
-        st.divider()
-
-        st.subheader("📊 Informações sobre as férias")
-
-
-        # ====================================================
-        # SE NÃO AFETAR A COMPENSAÇÃO
+        # IMPACTO DAS FÉRIAS
         # ====================================================
 
         if dias_perdidos == 0:
+
+            # Se as férias não atingirem o período
+            # de compensação, mostra apenas esta mensagem.
 
             st.success(
                 "✅ Período de férias não afeta a compensação."
             )
 
-        # ====================================================
-        # SE AFETAR A COMPENSAÇÃO
-        # ====================================================
-
         else:
+
+            # ------------------------------------------------
+            # DIAS PERDIDOS
+            # ------------------------------------------------
+
+            st.divider()
+
+            st.subheader("📊 Impacto das férias")
+
 
             col1, col2 = st.columns(2)
 
@@ -351,7 +342,7 @@ if st.button("Calcular"):
 
 
             # ------------------------------------------------
-            # VER DIAS PERDIDOS
+            # DIAS PERDIDOS
             # ------------------------------------------------
 
             with st.expander(
@@ -379,7 +370,7 @@ if st.button("Calcular"):
 
 
         # ====================================================
-        # FERIADOS CONSIDERADOS
+        # FERIADOS
         # ====================================================
 
         with st.expander(
