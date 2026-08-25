@@ -8,7 +8,7 @@ from datetime import date, timedelta
 
 ANO = 2026
 
-# Regras conforme a tabela
+# Data-base de início da compensação conforme a jornada
 REGRAS_JORNADA = {
     "8 horas": {
         "horas": 24,
@@ -31,7 +31,7 @@ REGRAS_JORNADA = {
 # Prazo final da compensação
 FIM_COMPENSACAO = date(2026, 12, 23)
 
-# Feriados dentro do período relevante
+# Feriados relevantes no período
 FERIADOS = {
     date(2026, 11, 2),   # Finados
     date(2026, 11, 20),  # Consciência Negra
@@ -44,7 +44,7 @@ FERIADOS = {
 
 def is_business_day(data):
     """
-    Retorna True se a data for um dia útil.
+    Verifica se a data é um dia útil.
     Segunda a sexta-feira e não pode ser feriado.
     """
 
@@ -56,7 +56,8 @@ def is_business_day(data):
 
 def get_business_days(inicio, fim):
     """
-    Retorna todos os dias úteis entre duas datas.
+    Retorna todos os dias úteis entre duas datas,
+    incluindo início e fim.
     """
 
     dias = []
@@ -82,8 +83,33 @@ def count_business_days(inicio, fim):
     )
 
 
+def backdate_business_days(data_inicial, quantidade):
+    """
+    Volta uma quantidade de dias úteis a partir
+    da data-base.
+
+    Exemplo:
+
+    15/10/2026
+    menos 1 dia útil = 14/10/2026
+    menos 13 dias úteis = 28/09/2026
+    """
+
+    atual = data_inicial
+    restantes = quantidade
+
+    while restantes > 0:
+
+        atual -= timedelta(days=1)
+
+        if is_business_day(atual):
+            restantes -= 1
+
+    return atual
+
+
 # ============================================================
-# CONFIGURAÇÃO DO STREAMLIT
+# STREAMLIT
 # ============================================================
 
 st.set_page_config(
@@ -115,11 +141,12 @@ jornada = st.selectbox(
 )
 
 
-# Obtém as regras da jornada selecionada
+# Obtém as regras da jornada
 regra = REGRAS_JORNADA[jornada]
 
 horas_compensar = regra["horas"]
-inicio_compensacao = regra["inicio"]
+
+data_base = regra["inicio"]
 
 
 # ============================================================
@@ -174,15 +201,20 @@ if st.button("Calcular"):
     else:
 
         # ====================================================
-        # DIAS ÚTEIS PERDIDOS
+        # DIAS DE FÉRIAS QUE AFETAM A COMPENSAÇÃO
         # ====================================================
 
-        # A contagem dos dias perdidos começa na data
-        # de início da compensação daquela jornada.
+        # A partir da data-base da jornada é que começa
+        # o período que deveria ser trabalhado.
+        #
+        # Se as férias começarem antes da data-base,
+        # usamos a própria data-base.
+        #
+        # Se terminarem antes da data-base, não há impacto.
 
         inicio_contagem = max(
             inicio_ferias,
-            inicio_compensacao
+            data_base
         )
 
         if inicio_contagem <= fim_ferias:
@@ -196,17 +228,36 @@ if st.button("Calcular"):
 
             dias_perdidos_lista = []
 
+
         dias_perdidos = len(
             dias_perdidos_lista
         )
 
 
         # ====================================================
-        # DIAS ÚTEIS DISPONÍVEIS
+        # CALCULA O INÍCIO REAL DA COMPENSAÇÃO
+        # ====================================================
+
+        if dias_perdidos > 0:
+
+            inicio_real_compensacao = (
+                backdate_business_days(
+                    data_base,
+                    dias_perdidos
+                )
+            )
+
+        else:
+
+            inicio_real_compensacao = data_base
+
+
+        # ====================================================
+        # DIAS ÚTEIS DISPONÍVEIS ATÉ O PRAZO FINAL
         # ====================================================
 
         dias_disponiveis = count_business_days(
-            inicio_compensacao,
+            inicio_real_compensacao,
             FIM_COMPENSACAO
         )
 
@@ -242,17 +293,17 @@ if st.button("Calcular"):
 
 
         # ----------------------------------------------------
-        # INÍCIO DA COMPENSAÇÃO
+        # INÍCIO REAL DA COMPENSAÇÃO
         # ----------------------------------------------------
 
         st.success(
             f"🕒 **Início da compensação:** "
-            f"{inicio_compensacao.strftime('%d/%m/%Y')}"
+            f"{inicio_real_compensacao.strftime('%d/%m/%Y')}"
         )
 
 
         # ----------------------------------------------------
-        # PRAZO FINAL DA COMPENSAÇÃO
+        # PRAZO FINAL
         # ----------------------------------------------------
 
         st.success(
@@ -279,7 +330,7 @@ if st.button("Calcular"):
 
 
             # ------------------------------------------------
-            # DIAS PERDIDOS E DISPONÍVEIS
+            # DIAS PERDIDOS
             # ------------------------------------------------
 
             col1, col2 = st.columns(2)
@@ -300,6 +351,19 @@ if st.button("Calcular"):
 
 
             # ------------------------------------------------
+            # EXPLICAÇÃO DO CÁLCULO
+            # ------------------------------------------------
+
+            st.info(
+                f"📌 A data-base para esta jornada era "
+                f"**{data_base.strftime('%d/%m/%Y')}**. "
+                f"Como foram perdidos **{dias_perdidos} dias úteis**, "
+                f"a compensação foi antecipada em "
+                f"**{dias_perdidos} dias úteis**."
+            )
+
+
+            # ------------------------------------------------
             # DIAS PERDIDOS
             # ------------------------------------------------
 
@@ -314,22 +378,8 @@ if st.button("Calcular"):
                     )
 
 
-            # ------------------------------------------------
-            # VERIFICAÇÃO
-            # ------------------------------------------------
-
-            if dias_perdidos > dias_disponiveis:
-
-                st.error(
-                    f"❌ Existem {dias_perdidos} dias úteis "
-                    f"afetados pelas férias, mas existem apenas "
-                    f"{dias_disponiveis} dias úteis disponíveis "
-                    f"até 23/12/2026."
-                )
-
-
         # ====================================================
-        # FERIADOS CONSIDERADOS
+        # FERIADOS
         # ====================================================
 
         with st.expander(
