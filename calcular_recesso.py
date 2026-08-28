@@ -31,12 +31,16 @@ REGRAS_JORNADA = {
 # Prazo final da compensação
 FIM_COMPENSACAO = date(2026, 12, 23)
 
-# Feriados considerados
+
+# ============================================================
+# FERIADOS
+# ============================================================
+
 FERIADOS = {
-    date(2026, 9, 7), # Indepedência
-    date(2026, 10, 12), # Nossa senhora Aparecida
-    date(2026, 11, 2),   # Finados
-    date(2026, 11, 20),  # Consciência Negra
+    date(2026, 9, 7),   # Independência do Brasil
+    date(2026, 10, 12), # Nossa Senhora Aparecida
+    date(2026, 11, 2),  # Finados
+    date(2026, 11, 20), # Consciência Negra
 }
 
 
@@ -47,6 +51,7 @@ FERIADOS = {
 def is_business_day(data):
     """
     Verifica se a data é um dia útil.
+
     Segunda a sexta-feira e não pode ser feriado.
     """
 
@@ -58,7 +63,8 @@ def is_business_day(data):
 
 def get_business_days(inicio, fim):
     """
-    Retorna todos os dias úteis entre duas datas.
+    Retorna todos os dias úteis entre duas datas,
+    incluindo a data inicial e a data final.
     """
 
     dias = []
@@ -185,22 +191,26 @@ if st.button("Calcular"):
         # ====================================================
         # DIAS ÚTEIS PERDIDOS
         # ====================================================
+        #
+        # IMPORTANTE:
+        #
+        # Aqui consideramos TODOS os dias úteis das férias,
+        # inclusive aqueles que acontecem ANTES da data-base.
+        #
+        # Exemplo:
+        #
+        # Data-base: 15/10/2026
+        # Férias:    13/10/2026 a 27/10/2026
+        #
+        # Os dias 13 e 14 também são considerados, pois a
+        # pessoa já estaria em período de compensação.
+        #
+        # ====================================================
 
-        inicio_contagem = max(
+        dias_perdidos_lista = get_business_days(
             inicio_ferias,
-            data_base
+            fim_ferias
         )
-
-        if inicio_contagem <= fim_ferias:
-
-            dias_perdidos_lista = get_business_days(
-                inicio_contagem,
-                fim_ferias
-            )
-
-        else:
-
-            dias_perdidos_lista = []
 
         dias_perdidos = len(
             dias_perdidos_lista
@@ -209,6 +219,14 @@ if st.button("Calcular"):
 
         # ====================================================
         # INÍCIO REAL DA COMPENSAÇÃO
+        # ====================================================
+        #
+        # Para cada dia útil perdido nas férias, a compensação
+        # precisa começar um dia útil antes.
+        #
+        # Portanto, voltamos a quantidade de dias úteis
+        # correspondente aos dias perdidos.
+        #
         # ====================================================
 
         if dias_perdidos > 0:
@@ -326,11 +344,7 @@ if st.button("Calcular"):
         ):
 
             st.write(
-                "02/11/2026 — Finados"
-            )
-
-            st.write(
-                "20/11/2026 — Consciência Negra"
+                "07/09/2026 — Independência do Brasil"
             )
 
             st.write(
@@ -338,5 +352,9 @@ if st.button("Calcular"):
             )
 
             st.write(
-                "07/09/2026 — Independência do Brasi"
+                "02/11/2026 — Finados"
+            )
+
+            st.write(
+                "20/11/2026 — Consciência Negra"
             )
