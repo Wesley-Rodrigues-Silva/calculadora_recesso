@@ -33,8 +33,8 @@ FIM_COMPENSACAO = date(2026, 12, 23)
 
 # Feriados considerados
 FERIADOS = {
-    date(2026, 09, 07) # Indepedência
-    date(2026, 10, 12) # Nossa senhora Aparecida
+    date(2026, 09, 07), # Indepedência
+    date(2026, 10, 12), # Nossa senhora Aparecida
     date(2026, 11, 2),   # Finados
     date(2026, 11, 20),  # Consciência Negra
 }
