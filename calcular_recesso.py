@@ -332,3 +332,11 @@ if st.button("Calcular"):
             st.write(
                 "20/11/2026 — Consciência Negra"
             )
+
+            st.write(
+                "12/10/2026 — Dia de Nossa Senhora Aparecida"
+            )
+
+             st.write(
+                "07/09/2026 — Independência do Brasi"
+            )
